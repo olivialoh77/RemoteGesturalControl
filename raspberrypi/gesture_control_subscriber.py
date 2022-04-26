@@ -28,7 +28,7 @@ def on_disconnect(client, userdata, rc):
 
 # The default message callback.
 # (you can create separate callbacks per subscribed topic)
-def on_message(client, userdata, message):
+def on_message(client, userdata, message, p1, p2, p3, p4, q1, q2, q3, q4):
 	txt = str(message.payload).replace("b'","")
 	print('Received message: "' + txt + '"on topic "' + message.topic + '" with QoS ' + str(message.qos))
 	tts = gTTS(text=txt, lang='en', slow=False)
@@ -36,7 +36,6 @@ def on_message(client, userdata, message):
 	playsound.playsound("playback.mp3")
 	os.remove("playback.mp3")
 	
-	mecanum_init()
 	if txt == "Pan right":
 		right()
 	elif txt == "Pan left":

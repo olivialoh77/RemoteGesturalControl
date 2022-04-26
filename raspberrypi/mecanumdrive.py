@@ -1,38 +1,36 @@
 import RPi.GPIO as GPIO
 from time import sleep
 
-p1, p2, p3, p4, p5, q1, q2, q3, q4 = 0
 
-def mecanum_init(p1, p2, p3, p4, q1, q2, q3, q4):
-    GPIO.setmode(GPIO.BCM)
+GPIO.setmode(GPIO.BCM)
 
-    LFpinForward = 23
-    LFpinReverse = 24
-    GPIO.setup(LFpinForward, GPIO.OUT)
-    GPIO.setup(LFpinReverse, GPIO.OUT)
-    p1 = GPIO.PWM(LFpinForward, 50)
-    q1 = GPIO.PWM(LFpinReverse, 50)
+LFpinForward = 23
+LFpinReverse = 24
+GPIO.setup(LFpinForward, GPIO.OUT)
+GPIO.setup(LFpinReverse, GPIO.OUT)
+p1 = GPIO.PWM(LFpinForward, 50)
+q1 = GPIO.PWM(LFpinReverse, 50)
 
-    LBpinForward = 27
-    LBpinReverse = 22
-    GPIO.setup(LBpinForward, GPIO.OUT)
-    GPIO.setup(LBpinReverse, GPIO.OUT)
-    p2 = GPIO.PWM(LBpinForward, 50)
-    q2 = GPIO.PWM(LBpinReverse, 50)
+LBpinForward = 27
+LBpinReverse = 22
+GPIO.setup(LBpinForward, GPIO.OUT)
+GPIO.setup(LBpinReverse, GPIO.OUT)
+p2 = GPIO.PWM(LBpinForward, 50)
+q2 = GPIO.PWM(LBpinReverse, 50)
 
-    RFpinForward = 25
-    RFpinReverse = 26
-    GPIO.setup(RFpinForward, GPIO.OUT)
-    GPIO.setup(RFpinReverse, GPIO.OUT)
-    p3 = GPIO.PWM(RFpinForward, 50)
-    q3 = GPIO.PWM(RFpinReverse, 50)
+RFpinForward = 25
+RFpinReverse = 26
+GPIO.setup(RFpinForward, GPIO.OUT)
+GPIO.setup(RFpinReverse, GPIO.OUT)
+p3 = GPIO.PWM(RFpinForward, 50)
+q3 = GPIO.PWM(RFpinReverse, 50)
 
-    RBpinForward = 6
-    RBpinReverse = 5
-    GPIO.setup(RBpinForward, GPIO.OUT)
-    GPIO.setup(RBpinReverse, GPIO.OUT)
-    p4 = GPIO.PWM(RBpinForward, 50)
-    q4 = GPIO.PWM(RBpinReverse, 50)
+RBpinForward = 6
+RBpinReverse = 5
+GPIO.setup(RBpinForward, GPIO.OUT)
+GPIO.setup(RBpinReverse, GPIO.OUT)
+p4 = GPIO.PWM(RBpinForward, 50)
+q4 = GPIO.PWM(RBpinReverse, 50)
 
 def left(p1, p2, p3, p4, q1, q2, q3, q4):
     p1.start(0)
