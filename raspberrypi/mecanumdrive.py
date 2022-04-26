@@ -1,7 +1,9 @@
 import RPi.GPIO as GPIO
 from time import sleep
 
-def mecanum_init()
+p1, p2, p3, p4, p5, q1, q2, q3, q4 = 0
+
+def mecanum_init(p1, p2, p3, p4, q1, q2, q3, q4):
     GPIO.setmode(GPIO.BCM)
 
     LFpinForward = 23
@@ -32,7 +34,7 @@ def mecanum_init()
     p4 = GPIO.PWM(RBpinForward, 50)
     q4 = GPIO.PWM(RBpinReverse, 50)
 
-def left():
+def left(p1, p2, p3, p4, q1, q2, q3, q4):
     p1.start(0)
     q2.start(0)
     p3.start(0)
@@ -50,7 +52,7 @@ def left():
     q4.stop()
     GPIO.cleanup()
 
-def right(): 
+def right(p1, p2, p3, p4, q1, q2, q3, q4): 
     q1.start(0)
     p2.start(0)
     q3.start(0)
@@ -68,7 +70,7 @@ def right():
     p4.stop()
     GPIO.cleanup()
 
-def backward():
+def backward(p1, p2, p3, p4, q1, q2, q3, q4):
     p1.start(0)
     p2.start(0)
     p3.start(0)
@@ -86,7 +88,7 @@ def backward():
     p4.stop()
     GPIO.cleanup()
 
-def forward():
+def forward(p1, p2, p3, p4, q1, q2, q3, q4):
     q1.start(0)
     q2.start(0)
     q3.start(0)
@@ -104,6 +106,4 @@ def forward():
     q4.stop()
     GPIO.cleanup()
 
-mecanum_init()
-forward()
 

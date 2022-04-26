@@ -1,7 +1,7 @@
 import paho.mqtt.client as mqtt
 
 import os
-import playsound
+#import playsound
 from gtts import gTTS
 
 import RPi.GPIO as GPIO
@@ -41,9 +41,9 @@ def on_message(client, userdata, message):
 		right()
 	elif txt == "Pan left":
 		left()
-    elif txt == "Tilt up":
+	elif txt == "Tilt up":
 		forward()
-    elif txt == "Tilt down":
+	elif txt == "Tilt down":
 		backward()
 
 # 1. create a client instance.
