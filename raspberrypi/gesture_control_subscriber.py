@@ -4,6 +4,11 @@ import os
 import playsound
 from gtts import gTTS
 
+import RPi.GPIO as GPIO
+from time import sleep
+
+from mecanumdrive import *
+
 # 0. define callbacks - functions that run when events happen.
 # The callback for when the client receives a CONNACK response from the server.
 
@@ -31,6 +36,16 @@ def on_message(client, userdata, message):
 	playsound.playsound("playback.mp3")
 	os.remove("playback.mp3")
 	
+	mecanum_init()
+    	if txt == "Pan right":
+		right()
+    	elif txt == "Pan left":
+		left()
+    	elif txt == "Tilt up":
+		forward()
+    	elif txt == "Tilt down":
+		backward()
+
 # 1. create a client instance.
 client = mqtt.Client()
 # add additional client options (security, certifications, etc.)
