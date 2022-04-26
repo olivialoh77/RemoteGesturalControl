@@ -37,13 +37,13 @@ def on_message(client, userdata, message):
 	os.remove("playback.mp3")
 	
 	mecanum_init()
-    	if txt == "Pan right":
+	if txt == "Pan right":
 		right()
-    	elif txt == "Pan left":
+	elif txt == "Pan left":
 		left()
-    	elif txt == "Tilt up":
+    elif txt == "Tilt up":
 		forward()
-    	elif txt == "Tilt down":
+    elif txt == "Tilt down":
 		backward()
 
 # 1. create a client instance.
