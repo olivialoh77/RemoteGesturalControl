@@ -32,7 +32,7 @@ GPIO.setup(RBpinReverse, GPIO.OUT)
 p4 = GPIO.PWM(RBpinForward, 50)
 q4 = GPIO.PWM(RBpinReverse, 50)
 
-def left(p1, p2, p3, p4, q1, q2, q3, q4):
+def left():
     p1.start(0)
     q2.start(0)
     p3.start(0)
@@ -48,9 +48,8 @@ def left(p1, p2, p3, p4, q1, q2, q3, q4):
     q2.stop()
     p3.stop()
     q4.stop()
-    GPIO.cleanup()
 
-def right(p1, p2, p3, p4, q1, q2, q3, q4): 
+def right(): 
     q1.start(0)
     p2.start(0)
     q3.start(0)
@@ -66,9 +65,8 @@ def right(p1, p2, p3, p4, q1, q2, q3, q4):
     p2.stop()
     q3.stop()
     p4.stop()
-    GPIO.cleanup()
 
-def backward(p1, p2, p3, p4, q1, q2, q3, q4):
+def backward():
     p1.start(0)
     p2.start(0)
     p3.start(0)
@@ -84,9 +82,8 @@ def backward(p1, p2, p3, p4, q1, q2, q3, q4):
     p2.stop()
     p3.stop()
     p4.stop()
-    GPIO.cleanup()
 
-def forward(p1, p2, p3, p4, q1, q2, q3, q4):
+def forward():
     q1.start(0)
     q2.start(0)
     q3.start(0)
@@ -102,6 +99,4 @@ def forward(p1, p2, p3, p4, q1, q2, q3, q4):
     q2.stop()
     q3.stop()
     q4.stop()
-    GPIO.cleanup()
-
 

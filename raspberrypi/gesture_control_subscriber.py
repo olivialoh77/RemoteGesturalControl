@@ -3,6 +3,7 @@ import paho.mqtt.client as mqtt
 import os
 #import playsound
 from gtts import gTTS
+import pygame
 
 import RPi.GPIO as GPIO
 from time import sleep
@@ -28,21 +29,30 @@ def on_disconnect(client, userdata, rc):
 
 # The default message callback.
 # (you can create separate callbacks per subscribed topic)
-def on_message(client, userdata, message, p1, p2, p3, p4, q1, q2, q3, q4):
+def on_message(client, userdata, message):
 	txt = str(message.payload).replace("b'","")
 	print('Received message: "' + txt + '"on topic "' + message.topic + '" with QoS ' + str(message.qos))
 	tts = gTTS(text=txt, lang='en', slow=False)
 	tts.save("playback.mp3")
-	playsound.playsound("playback.mp3")
-	os.remove("playback.mp3")
+	pygame.mixer.init()
+	pygame.mixer.music.load("playback.mp3")
+	pygame.mixer.music.play()
+	while pygame.mixer.music.get_busy() == True:
+		continue
+    	#playsound.playsound("playback.mp3")
+	#os.remove("playback.mp3")
 	
-	if txt == "Pan right":
+	if txt == "Pan right'":
+		#print("k")
 		right()
-	elif txt == "Pan left":
+	elif txt == "Pan left'":
+		#print("j")
 		left()
-	elif txt == "Tilt up":
+	elif txt == "Tilt Up'":
+		#print("i")
 		forward()
-	elif txt == "Tilt down":
+	elif txt == "Tilt Down'":
+		#print("h")
 		backward()
 
 # 1. create a client instance.
@@ -73,3 +83,5 @@ while True:
 # use disconnect() to disconnect from the broker.
 client.loop_stop()
 client.disconnect()
+GPIO.cleanup()
+
