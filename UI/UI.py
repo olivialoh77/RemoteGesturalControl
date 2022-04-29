@@ -12,30 +12,25 @@ root.resizable(False, False)
 image = Image.open("UI/assets/remotefilmcontrols.png")
 photo = ImageTk.PhotoImage(image)
 label = tk.Label(root, image=photo, borderwidth=0)
-label.pack()
+label.grid()
+
+# Create a frame
+app = tk.Frame(root, bg="white")
+app.grid()
+# Create a label in the frame
+lmain = tk.Label(app)
+lmain.grid()
+
+# function for video streaming
+def video_stream():
+    _, frame = cap.read()
+    cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
+    img = Image.fromarray(cv2image)
+    imgtk = ImageTk.PhotoImage(image=img)
+    lmain.imgtk = imgtk
+    lmain.configure(image=imgtk)
+    lmain.after(1, video_stream) 
 
 
-class LiveFeed():
-    def __init__(self, window, cap, image):
-        self.window = window
-        self.cap = cap
-        self.width = 960
-        self.height = 540
-        self.interval = 1000 # Interval in ms to get the latest frame
-        # Create canvas for image
-        self.canvas = tk.Canvas(self.window, width=self.width, height=self.height)
-        self.canvas.pack()
-        # Update image on canvas
-        self.update_image(image)
-
-    def update_image(self, image):
-        # Get the latest frame and convert image format
-        self.image = image # to RGB
-        self.image = Image.fromarray(self.image) # to PIL format
-        self.image = ImageTk.PhotoImage(self.image) # to ImageTk format
-        # Update image
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.image)
-        # Repeat every 'interval' ms
-        self.window.after(self.interval, self.update_image(image))
-
-    
+#video_stream()
+#root.mainloop()

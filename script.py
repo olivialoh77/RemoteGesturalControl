@@ -11,14 +11,18 @@ import cv2 as cv
 import numpy as np
 import mediapipe as mp
 
-from utils import CvFpsCalc
-from model import KeyPointClassifier
-from model import PointHistoryClassifier
+from ml.utils import CvFpsCalc
+from ml.model import KeyPointClassifier
+from ml.model import PointHistoryClassifier
+
 
 # mqtt 
 
 import paho.mqtt.client as mqtt
 import numpy as np 
+
+#UI
+from UI.UI import *
 
 # functions for mqtt 
 
@@ -94,14 +98,14 @@ def main():
     point_history_classifier = PointHistoryClassifier()
 
     # Read labels ###########################################################
-    with open('model/keypoint_classifier/keypoint_classifier_label.csv',
+    with open('ml/model/keypoint_classifier/keypoint_classifier_label.csv',
               encoding='utf-8-sig') as f:
         keypoint_classifier_labels = csv.reader(f)
         keypoint_classifier_labels = [
             row[0] for row in keypoint_classifier_labels
         ]
     with open(
-            'model/point_history_classifier/point_history_classifier_label.csv',
+            'ml/model/point_history_classifier/point_history_classifier_label.csv',
             encoding='utf-8-sig') as f:
         point_history_classifier_labels = csv.reader(f)
         point_history_classifier_labels = [
@@ -214,12 +218,19 @@ def main():
 
                     x_center, y_center = locate_center_frame(use_brect,brect)
                 
-                    command1 = define_direction_x(x_center, y_center)
-                    command2 = define_direction_y(y_center)
-                    sent_msg = command1 + command2
+                    command1, x_diff = define_direction_x(x_center)
+                    command2, y_diff = define_direction_y(y_center)
+                    
+                    if abs(x_diff) > abs(y_diff):
+                        sent_msg = command1
+                    else: 
+                        sent_msg = command2
 
-                    if (sent_msg == ""):
-                        sent_msg = "Frame"
+                    #print(sent_msg)
+                    #sent_msg = command1 + "" + command2
+
+                    #if (sent_msg == ""):
+                    #    sent_msg = "Frame"
 
 
                 gesture, gesture_counter = send_info_text(sent_msg, gesture, gesture_counter, client)
@@ -231,12 +242,21 @@ def main():
         debug_image = draw_info(debug_image, fps, mode, number)
 
         # Screen reflection #############################################################
-        cv.imshow('Hand Gesture Recognition', debug_image)
+
+        #cv.imshow('Hand Gesture Recognition', debug_image)
+        #video_stream()
+        cv2image = cv.cvtColor(debug_image, cv.COLOR_BGR2RGBA)
+        img = Image.fromarray(cv2image)
+        imgtk = ImageTk.PhotoImage(image=img)
+        lmain.imgtk = imgtk
+        lmain.configure(image=imgtk)
+        
+        root.mainloop()
 
     # MQTT quit 
     client.loop_stop() 
     client.disconnect()
-    
+
     cap.release()
     cv.destroyAllWindows()
 
@@ -342,12 +362,12 @@ def logging_csv(number, mode, landmark_list, point_history_list):
     if mode == 0:
         pass
     if mode == 1 and (0 <= number <= 9):
-        csv_path = 'model/keypoint_classifier/keypoint.csv'
+        csv_path = 'ml/model/keypoint_classifier/keypoint.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *landmark_list])
     if mode == 2 and (0 <= number <= 9):
-        csv_path = 'model/point_history_classifier/point_history.csv'
+        csv_path = 'ml/model/point_history_classifier/point_history.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *point_history_list])
@@ -563,19 +583,24 @@ def locate_center_frame(use_brect, brect):
     return x_center, y_center 
 
 def define_direction_y(y_center):
+    y_diff = y_center - 270
+    #print("y")
+    #print(y_diff)
+    if (y_diff < -70):
+        return "Tilt Up", y_diff
+    elif (y_diff > 70):
+        return "Tilt Down", y_diff
+    return "", y_diff
 
-    if (y_center > 310):
-        return "Tilt Down"
-    elif (y_center < 230):
-        return "Tilt Up"
-    return ""
-def define_direction_x(x_center, y_center):
-
-    if (x_center > 520):
-        return "Pan right"
-    elif (x_center < 440):
-        return "Pan left"
-    return ""
+def define_direction_x(x_center):
+    x_diff = x_center - 480
+    #print("x")
+    #print(x_diff)
+    if (x_diff > 70):
+        return "Pan right", x_diff
+    elif (x_diff < -70):
+        return "Pan left", x_diff
+    return "", x_diff
     #elif (y_center > 290):
     #   return "Tilt Down"
 
@@ -607,20 +632,21 @@ def draw_info_text(image, brect, handedness, hand_sign_text,
     return image
 
 def send_info_text(hand_sign_text, gesture, gesture_counter, client):
+
+    if gesture_counter > 15 and hand_sign_text == gesture:
+        client.publish("film/test", gesture, qos=1)
+        gesture = hand_sign_text 
+        gesture_counter = 0
+        
+    elif gesture == hand_sign_text: 
+        gesture_counter = gesture_counter + 1 
+        
+    else:
+        gesture = hand_sign_text 
+        gesture_counter = 0 
 	
-	if gesture_counter > 15 and hand_sign_text == gesture: 
-		client.publish("film/test", gesture, qos=1)
-		gesture = hand_sign_text 
-		gesture_counter = 0 
-		
-	elif gesture == hand_sign_text: 
-		gesture_counter = gesture_counter + 1 
-		
-	else:
-		gesture = hand_sign_text 
-		gesture_counter = 0 
-		
-	return gesture, gesture_counter
+        
+    return gesture, gesture_counter
 
 def draw_point_history(image, point_history):
     for index, point in enumerate(point_history):
