@@ -22,14 +22,13 @@ lmain = tk.Label(app)
 lmain.grid()
 
 # function for video streaming
-def video_stream():
-    _, frame = cap.read()
-    cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
+def video_stream(debug_image):
+    cv2image = cv2.cvtColor(debug_image, cv2.COLOR_BGR2RGBA)
     img = Image.fromarray(cv2image)
     imgtk = ImageTk.PhotoImage(image=img)
     lmain.imgtk = imgtk
     lmain.configure(image=imgtk)
-    lmain.after(1, video_stream) 
+    lmain.after(1, video_stream(debug_image)) 
 
 
 #video_stream()

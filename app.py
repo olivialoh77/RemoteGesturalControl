@@ -16,64 +16,6 @@ from ml.model import KeyPointClassifier
 from ml.model import PointHistoryClassifier
 
 
-# mqtt 
-
-import paho.mqtt.client as mqtt
-import numpy as np 
-
-#UI
-import tkinter as tk
-from PIL import Image, ImageTk
-
-#Setup
-root = tk.Tk()
-root.title("Remote Filmmaking Software")
-root.geometry('1000x700')
-root.configure(background='black')
-root.resizable(False, False)
-
-#Title 
-image = Image.open("UI/assets/remotefilmcontrols.png")
-photo = ImageTk.PhotoImage(image)
-label = tk.Label(root, image=photo, borderwidth=0)
-label.grid()
-
-# Create a frame
-app = tk.Frame(root, bg="white")
-app.grid()
-# Create a label in the frame
-lmain = tk.Label(app)
-lmain.grid()
-
-# function for video streaming
-def video_stream(debug_image):
-    cv2image = cv2.cvtColor(debug_image, cv2.COLOR_BGR2RGBA)
-    img = Image.fromarray(cv2image)
-    imgtk = ImageTk.PhotoImage(image=img)
-    lmain.imgtk = imgtk
-    lmain.configure(image=imgtk)
-    lmain.after(1, video_stream(debug_image)) 
-
-
-# functions for mqtt 
-
-# The callback for when the client receives a CONNACK response from the server.
-def on_connect(client, userdata, flags, rc):
-	print("Connection returned result: " +str(rc))
-
-# The callback of the client when it disconnects.
-def on_disconnect(client, userdata, rc):
-	if rc != 0:
-		print("Unexpected Disconnect")
-	else:
-		print("Expected Disconnect")
-
-# The default message callback.
-def on_message(client, userdata, message):
-	print('Received message: "' + str(message.payload) + '" on topic "' + message.topic + '" with QoS ' + str(message.qos))
-
-
-# functions for gestural recognition
 def get_args():
     parser = argparse.ArgumentParser()
 
@@ -156,21 +98,6 @@ def main():
     #  ########################################################################
     mode = 0
 
-    #MQTT Init 
-    client = mqtt.Client()
-
-    client.on_connect = on_connect 
-    client.on_disconnect = on_disconnect 
-    client.on_message = on_message
-	
-    client.connect_async("test.mosquitto.org")
-	
-    client.loop_start()
-
-    # Recognition Logic 
-    gesture = ""
-    gesture_counter = 0
-	
     while True:
         fps = cvFpsCalc.get()
 
@@ -241,52 +168,14 @@ def main():
                     keypoint_classifier_labels[hand_sign_id],
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
-				
-
-                sent_msg = keypoint_classifier_labels[hand_sign_id]
-
-                if (keypoint_classifier_labels[hand_sign_id] == "Frame"):
-
-                    x_center, y_center = locate_center_frame(use_brect,brect)
-                
-                    command1, x_diff = define_direction_x(x_center)
-                    command2, y_diff = define_direction_y(y_center)
-                    
-                    if abs(x_diff) > abs(y_diff):
-                        sent_msg = command1
-                    else: 
-                        sent_msg = command2
-
-                    #print(sent_msg)
-                    #sent_msg = command1 + "" + command2
-
-                    #if (sent_msg == ""):
-                    #    sent_msg = "Frame"
-
-
-                gesture, gesture_counter = send_info_text(sent_msg, gesture, gesture_counter, client)
-
         else:
             point_history.append([0, 0])
 
-        #debug_image = draw_point_history(debug_image, point_history)
+        debug_image = draw_point_history(debug_image, point_history)
         debug_image = draw_info(debug_image, fps, mode, number)
-        cv2image = cv2.cvtColor(debug_image, cv2.COLOR_BGR2RGBA)
-        img = Image.fromarray(cv2image)
-        imgtk = ImageTk.PhotoImage(image=img)
-        lmain.imgtk = imgtk
-        lmain.configure(image=imgtk)
-        lmain.after(1, video_stream(debug_image)) 
 
         # Screen reflection #############################################################
-
-        #cv.imshow('Hand Gesture Recognition', debug_image)
-        #LiveFeed(window)
-        root.mainloop()
-
-    # MQTT quit 
-    client.loop_stop() 
-    client.disconnect()
+        cv.imshow('Hand Gesture Recognition', debug_image)
 
     cap.release()
     cv.destroyAllWindows()
@@ -305,7 +194,7 @@ def select_mode(key, mode):
     return number, mode
 
 
-def calc_bounding_rect(image, landmarks):
+def calc_bounding_rect_area(image, landmarks):
     image_width, image_height = image.shape[1], image.shape[0]
 
     landmark_array = np.empty((0, 2), int)
@@ -320,7 +209,8 @@ def calc_bounding_rect(image, landmarks):
 
     x, y, w, h = cv.boundingRect(landmark_array)
 
-    return [x, y, x + w, y + h]
+    return (w-x)*(h-y)
+    #return [x, y, x + w, y + h]
 
 
 def calc_landmark_list(image, landmarks):
@@ -393,7 +283,7 @@ def logging_csv(number, mode, landmark_list, point_history_list):
     if mode == 0:
         pass
     if mode == 1 and (0 <= number <= 9):
-        csv_path = 'ml/model/keypoint_classifier/keypoint.csv'
+        csv_path = 'ml/model/keypoint_classifier/keypoint2.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *landmark_list])
@@ -602,46 +492,6 @@ def draw_bounding_rect(use_brect, image, brect):
     return image
 
 
-def locate_center_frame(use_brect, brect):
-
-    x_center = 0 
-    y_center = 0 
-
-    if use_brect:
-        x_center = (brect[2] - brect[0])*3/4 + brect[0]
-        y_center = (brect[3] - brect[1])*3/4 + brect[1]
-
-    return x_center, y_center 
-
-def define_direction_y(y_center):
-    y_diff = y_center - 270
-    #print("y")
-    #print(y_diff)
-    if (y_diff < -70):
-        return "Tilt Up", y_diff
-    elif (y_diff > 70):
-        return "Tilt Down", y_diff
-    return "", y_diff
-
-def define_direction_x(x_center):
-    x_diff = x_center - 480
-    #print("x")
-    #print(x_diff)
-    if (x_diff > 70):
-        return "Pan right", x_diff
-    elif (x_diff < -70):
-        return "Pan left", x_diff
-    return "", x_diff
-    #elif (y_center > 290):
-    #   return "Tilt Down"
-
-    #elif (y_center < 250):
-    #    return "Tilt Up"
-
-    #else: 
-    
-
-
 def draw_info_text(image, brect, handedness, hand_sign_text,
                    finger_gesture_text):
     cv.rectangle(image, (brect[0], brect[1]), (brect[2], brect[1] - 22),
@@ -653,31 +503,15 @@ def draw_info_text(image, brect, handedness, hand_sign_text,
     cv.putText(image, info_text, (brect[0] + 5, brect[1] - 4),
                cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv.LINE_AA)
 
-    #if finger_gesture_text != "":
-    #    cv.putText(image, "Finger Gesture:" + finger_gesture_text, (10, 60),
-    #               cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 4, cv.LINE_AA)
-    #    cv.putText(image, "Finger Gesture:" + finger_gesture_text, (10, 60),
-    #               cv.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2,
-    #               cv.LINE_AA)
+    if finger_gesture_text != "":
+        cv.putText(image, "Finger Gesture:" + finger_gesture_text, (10, 60),
+                   cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 4, cv.LINE_AA)
+        cv.putText(image, "Finger Gesture:" + finger_gesture_text, (10, 60),
+                   cv.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2,
+                   cv.LINE_AA)
 
     return image
 
-def send_info_text(hand_sign_text, gesture, gesture_counter, client):
-
-    if gesture_counter > 15 and hand_sign_text == gesture:
-        client.publish("film/test", gesture, qos=1)
-        gesture = hand_sign_text 
-        gesture_counter = 0
-        
-    elif gesture == hand_sign_text: 
-        gesture_counter = gesture_counter + 1 
-        
-    else:
-        gesture = hand_sign_text 
-        gesture_counter = 0 
-	
-        
-    return gesture, gesture_counter
 
 def draw_point_history(image, point_history):
     for index, point in enumerate(point_history):

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import csv
 import copy
@@ -21,39 +21,12 @@ from ml.model import PointHistoryClassifier
 import paho.mqtt.client as mqtt
 import numpy as np 
 
+# velocity 
+import time 
+import numpy
+
 #UI
-import tkinter as tk
-from PIL import Image, ImageTk
-
-#Setup
-root = tk.Tk()
-root.title("Remote Filmmaking Software")
-root.geometry('1000x700')
-root.configure(background='black')
-root.resizable(False, False)
-
-#Title 
-image = Image.open("UI/assets/remotefilmcontrols.png")
-photo = ImageTk.PhotoImage(image)
-label = tk.Label(root, image=photo, borderwidth=0)
-label.grid()
-
-# Create a frame
-app = tk.Frame(root, bg="white")
-app.grid()
-# Create a label in the frame
-lmain = tk.Label(app)
-lmain.grid()
-
-# function for video streaming
-def video_stream(debug_image):
-    cv2image = cv2.cvtColor(debug_image, cv2.COLOR_BGR2RGBA)
-    img = Image.fromarray(cv2image)
-    imgtk = ImageTk.PhotoImage(image=img)
-    lmain.imgtk = imgtk
-    lmain.configure(image=imgtk)
-    lmain.after(1, video_stream(debug_image)) 
-
+#from UI.UI import *
 
 # functions for mqtt 
 
@@ -171,7 +144,17 @@ def main():
     gesture = ""
     gesture_counter = 0
 	
+    # Velocity Logic 
+    x_dist = 0  
+    prev_area = 0
+    prev_time = 0
+
     while True:
+
+        cur_time = time.time()
+        diff_time = cur_time - prev_time 
+        
+
         fps = cvFpsCalc.get()
 
         # Process Key (ESC: end) #################################################
@@ -245,17 +228,25 @@ def main():
 
                 sent_msg = keypoint_classifier_labels[hand_sign_id]
 
-                if (keypoint_classifier_labels[hand_sign_id] == "Frame"):
+             
 
-                    x_center, y_center = locate_center_frame(use_brect,brect)
-                
-                    command1, x_diff = define_direction_x(x_center)
-                    command2, y_diff = define_direction_y(y_center)
+                if (keypoint_classifier_labels[hand_sign_id] == "Standby" and diff_time >= 0.2 ):
+                    #print("0.01")
+                    x_center, y_center, area = locate_center_frame(use_brect,brect)
                     
-                    if abs(x_diff) > abs(y_diff):
-                        sent_msg = command1
+
+                    x_velocity = define_direction_x(x_center, x_dist)
+                    x_dist = x_center
+                    
+                    y_velocity = define_direction_y(prev_area, area)
+                    prev_area = area 
+
+                    if abs(x_velocity) > abs(y_velocity):
+                        duty_cycle = x_threshold(x_velocity)
+                        sent_msg = "x " + duty_cycle
                     else: 
-                        sent_msg = command2
+                        duty_cycle = y_threshold(y_velocity)
+                        sent_msg = "y " + duty_cycle
 
                     #print(sent_msg)
                     #sent_msg = command1 + "" + command2
@@ -263,7 +254,7 @@ def main():
                     #if (sent_msg == ""):
                     #    sent_msg = "Frame"
 
-
+                    prev_time = cur_time
                 gesture, gesture_counter = send_info_text(sent_msg, gesture, gesture_counter, client)
 
         else:
@@ -271,18 +262,18 @@ def main():
 
         #debug_image = draw_point_history(debug_image, point_history)
         debug_image = draw_info(debug_image, fps, mode, number)
-        cv2image = cv2.cvtColor(debug_image, cv2.COLOR_BGR2RGBA)
-        img = Image.fromarray(cv2image)
-        imgtk = ImageTk.PhotoImage(image=img)
-        lmain.imgtk = imgtk
-        lmain.configure(image=imgtk)
-        lmain.after(1, video_stream(debug_image)) 
 
         # Screen reflection #############################################################
 
-        #cv.imshow('Hand Gesture Recognition', debug_image)
-        #LiveFeed(window)
-        root.mainloop()
+        cv.imshow('Hand Gesture Recognition', debug_image)
+        #video_stream()
+        #cv2image = cv.cvtColor(debug_image, cv.COLOR_BGR2RGBA)
+        #img = Image.fromarray(cv2image)
+        #imgtk = ImageTk.PhotoImage(image=img)
+        #lmain.imgtk = imgtk
+        #lmain.configure(image=imgtk)
+        
+        #root.mainloop()
 
     # MQTT quit 
     client.loop_stop() 
@@ -606,32 +597,50 @@ def locate_center_frame(use_brect, brect):
 
     x_center = 0 
     y_center = 0 
+    area = 0 
 
     if use_brect:
-        x_center = (brect[2] - brect[0])*3/4 + brect[0]
-        y_center = (brect[3] - brect[1])*3/4 + brect[1]
+        x_center = (brect[2] - brect[0])*1/2 + brect[0]
+        y_center = (brect[3] - brect[1])*1/2 + brect[1]
+        area = (((brect[2] - brect[0]) * (brect[3] - brect[1])) / 307200 ) * 100
+    return x_center, y_center, area 
 
-    return x_center, y_center 
+def define_direction_y(prev_area, area):
+    delta_a = prev_area - area 
+    #print(delta_a)
+    a_velocity = delta_a / 0.2
 
-def define_direction_y(y_center):
-    y_diff = y_center - 270
+    distance_over_area = 0.135 * prev_area + 3.695
+
+    y_velocity = a_velocity * distance_over_area * 0.01
+
+    #print(y_velocity)
+    return y_velocity
+
+    #y_diff = y_center - 270
     #print("y")
     #print(y_diff)
-    if (y_diff < -70):
-        return "Tilt Up", y_diff
-    elif (y_diff > 70):
-        return "Tilt Down", y_diff
-    return "", y_diff
+    #if (y_diff < -70):
+    #    return "Tilt Up", y_diff
+    #elif (y_diff > 70):
+    #    return "Tilt Down", y_diff
+    #return "", 0
 
-def define_direction_x(x_center):
-    x_diff = x_center - 480
+def define_direction_x(x_center, x_dist):
+    delta_x = x_center - x_dist 
+    x_velocity = (delta_x / 0.2)*0.005
+    #print(x_velocity)
+
+    return x_velocity
+
+    #x_diff = x_center - 480
     #print("x")
     #print(x_diff)
-    if (x_diff > 70):
-        return "Pan right", x_diff
-    elif (x_diff < -70):
-        return "Pan left", x_diff
-    return "", x_diff
+    #if (x_diff > 70):
+    #    return "Pan right", x_diff
+    #elif (x_diff < -70):
+    #    return "Pan left", x_diff
+    #return "", x_diff,
     #elif (y_center > 290):
     #   return "Tilt Down"
 
@@ -640,6 +649,35 @@ def define_direction_x(x_center):
 
     #else: 
     
+def x_threshold(x_velocity):
+    
+    duty_cycle = 0
+    if (x_velocity < 0.1 and x_velocity > -0.1):
+        duty_cycle =  0 
+    elif (x_velocity > 4 or x_velocity < -4):
+        duty_cycle = 100 * numpy.sign(x_velocity)
+    elif (x_velocity > 0):
+        duty_cycle = ((x_velocity - 0.1) / 3.9 ) * 100
+    else:
+        duty_cycle = ((x_velocity + 0.1) / 3.9 ) * 100
+    print(round(duty_cycle))
+    return round(duty_cycle)
+
+def y_threshold(y_velocity):
+    
+    duty_cycle = 0 
+    if (y_velocity < 0.1 and y_velocity > -0.1):
+        duty_cycle = 0 
+    elif (y_velocity > 4 or y_velocity < -4):
+        duty_cycle = 100 * numpy.sign(y_velocity)
+    elif (y_velocity > 0):
+        duty_cycle = ((y_velocity - 0.1) / 5.9 ) * 100
+    else:
+        duty_cycle = ((y_velocity + 0.1) / 5.9) * 100
+        
+    print(round(duty_cycle))
+    return round(duty_cycle)
+
 
 
 def draw_info_text(image, brect, handedness, hand_sign_text,
@@ -665,6 +703,7 @@ def draw_info_text(image, brect, handedness, hand_sign_text,
 def send_info_text(hand_sign_text, gesture, gesture_counter, client):
 
     if gesture_counter > 15 and hand_sign_text == gesture:
+        print(gesture)
         client.publish("film/test", gesture, qos=1)
         gesture = hand_sign_text 
         gesture_counter = 0
@@ -675,7 +714,6 @@ def send_info_text(hand_sign_text, gesture, gesture_counter, client):
     else:
         gesture = hand_sign_text 
         gesture_counter = 0 
-	
         
     return gesture, gesture_counter
 

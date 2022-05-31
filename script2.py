@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import csv
 import copy
@@ -22,38 +22,7 @@ import paho.mqtt.client as mqtt
 import numpy as np 
 
 #UI
-import tkinter as tk
-from PIL import Image, ImageTk
-
-#Setup
-root = tk.Tk()
-root.title("Remote Filmmaking Software")
-root.geometry('1000x700')
-root.configure(background='black')
-root.resizable(False, False)
-
-#Title 
-image = Image.open("UI/assets/remotefilmcontrols.png")
-photo = ImageTk.PhotoImage(image)
-label = tk.Label(root, image=photo, borderwidth=0)
-label.grid()
-
-# Create a frame
-app = tk.Frame(root, bg="white")
-app.grid()
-# Create a label in the frame
-lmain = tk.Label(app)
-lmain.grid()
-
-# function for video streaming
-def video_stream(debug_image):
-    cv2image = cv2.cvtColor(debug_image, cv2.COLOR_BGR2RGBA)
-    img = Image.fromarray(cv2image)
-    imgtk = ImageTk.PhotoImage(image=img)
-    lmain.imgtk = imgtk
-    lmain.configure(image=imgtk)
-    lmain.after(1, video_stream(debug_image)) 
-
+from UI.UI import *
 
 # functions for mqtt 
 
@@ -271,17 +240,17 @@ def main():
 
         #debug_image = draw_point_history(debug_image, point_history)
         debug_image = draw_info(debug_image, fps, mode, number)
-        cv2image = cv2.cvtColor(debug_image, cv2.COLOR_BGR2RGBA)
-        img = Image.fromarray(cv2image)
-        imgtk = ImageTk.PhotoImage(image=img)
-        lmain.imgtk = imgtk
-        lmain.configure(image=imgtk)
-        lmain.after(1, video_stream(debug_image)) 
 
         # Screen reflection #############################################################
 
         #cv.imshow('Hand Gesture Recognition', debug_image)
-        #LiveFeed(window)
+        #video_stream()
+        cv2image = cv.cvtColor(debug_image, cv.COLOR_BGR2RGBA)
+        img = Image.fromarray(cv2image)
+        imgtk = ImageTk.PhotoImage(image=img)
+        lmain.imgtk = imgtk
+        lmain.configure(image=imgtk)
+        
         root.mainloop()
 
     # MQTT quit 

@@ -18,59 +18,26 @@ from ml.model import PointHistoryClassifier
 
 # mqtt 
 
-import paho.mqtt.client as mqtt
-import numpy as np 
-
-#UI
-import tkinter as tk
-from PIL import Image, ImageTk
-
-#Setup
-root = tk.Tk()
-root.title("Remote Filmmaking Software")
-root.geometry('1000x700')
-root.configure(background='black')
-root.resizable(False, False)
-
-#Title 
-image = Image.open("UI/assets/remotefilmcontrols.png")
-photo = ImageTk.PhotoImage(image)
-label = tk.Label(root, image=photo, borderwidth=0)
-label.grid()
-
-# Create a frame
-app = tk.Frame(root, bg="white")
-app.grid()
-# Create a label in the frame
-lmain = tk.Label(app)
-lmain.grid()
-
-# function for video streaming
-def video_stream(debug_image):
-    cv2image = cv2.cvtColor(debug_image, cv2.COLOR_BGR2RGBA)
-    img = Image.fromarray(cv2image)
-    imgtk = ImageTk.PhotoImage(image=img)
-    lmain.imgtk = imgtk
-    lmain.configure(image=imgtk)
-    lmain.after(1, video_stream(debug_image)) 
-
+#import paho.mqtt.client as mqtt
+#import numpy as np 
 
 # functions for mqtt 
 
 # The callback for when the client receives a CONNACK response from the server.
-def on_connect(client, userdata, flags, rc):
-	print("Connection returned result: " +str(rc))
+#def on_connect(client, userdata, flags, rc):
+#	print("Connection returned result: " +str(rc))
 
 # The callback of the client when it disconnects.
-def on_disconnect(client, userdata, rc):
-	if rc != 0:
-		print("Unexpected Disconnect")
-	else:
-		print("Expected Disconnect")
+
+#def on_disconnect(client, userdata, rc):
+#	if rc != 0:
+#		print("Unexpected Disconnect")
+#	else:
+#		print("Expected Disconnect")
 
 # The default message callback.
-def on_message(client, userdata, message):
-	print('Received message: "' + str(message.payload) + '" on topic "' + message.topic + '" with QoS ' + str(message.qos))
+#def on_message(client, userdata, message):
+#	print('Received message: "' + str(message.payload) + '" on topic "' + message.topic + '" with QoS ' + str(message.qos))
 
 
 # functions for gestural recognition
@@ -96,7 +63,7 @@ def get_args():
     return args
 
 
-def main():
+def main(p_conn):
     # Argument parsing #################################################################
     args = get_args()
 
@@ -157,15 +124,15 @@ def main():
     mode = 0
 
     #MQTT Init 
-    client = mqtt.Client()
+    #client = mqtt.Client()
 
-    client.on_connect = on_connect 
-    client.on_disconnect = on_disconnect 
-    client.on_message = on_message
+    #client.on_connect = on_connect 
+    #client.on_disconnect = on_disconnect 
+    #client.on_message = on_message
 	
-    client.connect_async("test.mosquitto.org")
+    #client.connect_async("test.mosquitto.org")
 	
-    client.loop_start()
+    #client.loop_start()
 
     # Recognition Logic 
     gesture = ""
@@ -264,29 +231,21 @@ def main():
                     #    sent_msg = "Frame"
 
 
-                gesture, gesture_counter = send_info_text(sent_msg, gesture, gesture_counter, client)
+                gesture, gesture_counter = send_info_text(sent_msg, gesture, gesture_counter, p_conn)
 
         else:
             point_history.append([0, 0])
 
         #debug_image = draw_point_history(debug_image, point_history)
         debug_image = draw_info(debug_image, fps, mode, number)
-        cv2image = cv2.cvtColor(debug_image, cv2.COLOR_BGR2RGBA)
-        img = Image.fromarray(cv2image)
-        imgtk = ImageTk.PhotoImage(image=img)
-        lmain.imgtk = imgtk
-        lmain.configure(image=imgtk)
-        lmain.after(1, video_stream(debug_image)) 
 
         # Screen reflection #############################################################
 
-        #cv.imshow('Hand Gesture Recognition', debug_image)
-        #LiveFeed(window)
-        root.mainloop()
+        cv.imshow('Hand Gesture Recognition', debug_image)
 
     # MQTT quit 
-    client.loop_stop() 
-    client.disconnect()
+    #client.loop_stop() 
+    #client.disconnect()
 
     cap.release()
     cv.destroyAllWindows()
@@ -393,12 +352,12 @@ def logging_csv(number, mode, landmark_list, point_history_list):
     if mode == 0:
         pass
     if mode == 1 and (0 <= number <= 9):
-        csv_path = 'ml/model/keypoint_classifier/keypoint.csv'
+        csv_path = 'model/keypoint_classifier/keypoint.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *landmark_list])
     if mode == 2 and (0 <= number <= 9):
-        csv_path = 'ml/model/point_history_classifier/point_history.csv'
+        csv_path = 'model/point_history_classifier/point_history.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *point_history_list])
@@ -662,10 +621,10 @@ def draw_info_text(image, brect, handedness, hand_sign_text,
 
     return image
 
-def send_info_text(hand_sign_text, gesture, gesture_counter, client):
+def send_info_text(hand_sign_text, gesture, gesture_counter, p_conn):
 
     if gesture_counter > 15 and hand_sign_text == gesture:
-        client.publish("film/test", gesture, qos=1)
+        p_conn.send(gesture)
         gesture = hand_sign_text 
         gesture_counter = 0
         
