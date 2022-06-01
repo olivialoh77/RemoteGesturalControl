@@ -142,8 +142,9 @@ def main():
 
     # Recognition Logic 
     gesture = ""
-    gesture_counter = 0
-	
+    gesture_counter = [("x", 0), ("x",0),("x",0)]
+	#prev_msg = "x 0"
+
     # Velocity Logic 
     x_dist = 0  
     prev_area = 0
@@ -225,37 +226,56 @@ def main():
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
 				
+                if (diff_time >= 0.3):
 
-                sent_msg = keypoint_classifier_labels[hand_sign_id]
+                    sent_msg = keypoint_classifier_labels[hand_sign_id]
 
-             
-
-                if (keypoint_classifier_labels[hand_sign_id] == "Standby" and diff_time >= 0.2 ):
-                    #print("0.01")
-                    x_center, y_center, area = locate_center_frame(use_brect,brect)
+                    
+                    if (keypoint_classifier_labels[hand_sign_id] == "Standby"):
+                        
+                            #print("0.01")
+                            x_center, y_center, area = locate_center_frame(use_brect,brect)
                     
 
-                    x_velocity = define_direction_x(x_center, x_dist)
-                    x_dist = x_center
+                            x_velocity = define_direction_x(x_center, x_dist)
+                            x_dist = x_center
                     
-                    y_velocity = define_direction_y(prev_area, area)
-                    prev_area = area 
+                            y_velocity = define_direction_y(prev_area, area)
+                            prev_area = area 
 
-                    if abs(x_velocity) > abs(y_velocity):
-                        duty_cycle = x_threshold(x_velocity)
-                        sent_msg = "x " + duty_cycle
-                    else: 
-                        duty_cycle = y_threshold(y_velocity)
-                        sent_msg = "y " + duty_cycle
+                            
+                            if abs(x_velocity) > abs(y_velocity):
+                                duty_cycle = x_threshold(x_velocity)
+                                dir == "x"
+                                sent_msg = "x " + str(duty_cycle)
+                                
+                            else: 
+                                duty_cycle = y_threshold(y_velocity)
+                                dir == "y"
+                                if (duty_cycle == 0):
+                                    sent_msg = "x " + str(duty_cycle)
+                                else:
+                                    sent_msg = "y " + str(duty_cycle)
 
+                            if(gesture_counter[0][0] and gesture_counter[1][0] and gesture_counter[2][0]):
+                                gesture_counter[0] = gesture_counter[1]
+                                gesture_counter[1] = gesture_counter[2]
+                                new_tuple = (dir, duty_cycle)
+                                gesture_counter[2] = new_tuple
+                            else: 
+                                sent_msg = gesture_counter[2][1] + str(gesture_counter[2][1])
+
+                          
+                            #print(sent_msg)
+                            #sent_msg = command1 + "" + command2
+
+                            #if (sent_msg == ""):
+                            #    sent_msg = "Frame"
+                    if (keypoint_classifier_labels[hand_sign_id] == "Wrap"):
+                        sent_msg = "Stop"
                     #print(sent_msg)
-                    #sent_msg = command1 + "" + command2
-
-                    #if (sent_msg == ""):
-                    #    sent_msg = "Frame"
-
                     prev_time = cur_time
-                gesture, gesture_counter = send_info_text(sent_msg, gesture, gesture_counter, client)
+                    gesture, gesture_counter = send_info_text(sent_msg, gesture, gesture_counter, client)
 
         else:
             point_history.append([0, 0])
@@ -650,18 +670,20 @@ def define_direction_x(x_center, x_dist):
     #else: 
     
 def x_threshold(x_velocity):
-    
+    #print(x_velocity)
     duty_cycle = 0
     if (x_velocity < 0.1 and x_velocity > -0.1):
         duty_cycle =  0 
     elif (x_velocity > 4 or x_velocity < -4):
-        duty_cycle = 100 * numpy.sign(x_velocity)
+        duty_cycle = 30 * numpy.sign(x_velocity) + 70
     elif (x_velocity > 0):
-        duty_cycle = ((x_velocity - 0.1) / 3.9 ) * 100
+        duty_cycle = ((x_velocity - 0.1) / 3.9 ) * 30 + 70
     else:
-        duty_cycle = ((x_velocity + 0.1) / 3.9 ) * 100
-    print(round(duty_cycle))
+        duty_cycle = (((x_velocity + 0.1) / 3.9 ) * 30 + 70) * -1
+    #print(round(duty_cycle))
+    #duty_cycle = duty_cycle + 70
     return round(duty_cycle)
+
 
 def y_threshold(y_velocity):
     
@@ -669,13 +691,12 @@ def y_threshold(y_velocity):
     if (y_velocity < 0.1 and y_velocity > -0.1):
         duty_cycle = 0 
     elif (y_velocity > 4 or y_velocity < -4):
-        duty_cycle = 100 * numpy.sign(y_velocity)
+        duty_cycle = 30 * numpy.sign(y_velocity) + 70
     elif (y_velocity > 0):
-        duty_cycle = ((y_velocity - 0.1) / 5.9 ) * 100
+        duty_cycle = ((y_velocity - 0.1) / 5.9 ) * 30 + 70
     else:
-        duty_cycle = ((y_velocity + 0.1) / 5.9) * 100
-        
-    print(round(duty_cycle))
+        duty_cycle = (((y_velocity + 0.1) / 5.9) * 30 + 70) * -1
+    #print(round(duty_cycle))
     return round(duty_cycle)
 
 
@@ -700,9 +721,19 @@ def draw_info_text(image, brect, handedness, hand_sign_text,
 
     return image
 
-def send_info_text(hand_sign_text, gesture, gesture_counter, client):
 
-    if gesture_counter > 15 and hand_sign_text == gesture:
+
+def send_info_text(hand_sign_text, gesture, gesture_counter, client):
+    #print("Prev")
+    #print(gesture)
+    #print("Cur")
+    #print(hand_sign_text)
+    if(gesture != hand_sign_text):
+        print(hand_sign_text)
+        client.publish("film/test", hand_sign_text, qos=1)
+        gesture = hand_sign_text
+
+    """if gesture_counter > 7 and hand_sign_text == gesture:
         print(gesture)
         client.publish("film/test", gesture, qos=1)
         gesture = hand_sign_text 
@@ -715,6 +746,8 @@ def send_info_text(hand_sign_text, gesture, gesture_counter, client):
         gesture = hand_sign_text 
         gesture_counter = 0 
         
+    return gesture, gesture_counter"""
+
     return gesture, gesture_counter
 
 def draw_point_history(image, point_history):
