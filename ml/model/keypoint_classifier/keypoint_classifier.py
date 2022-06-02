@@ -28,7 +28,7 @@ class KeyPointClassifier(object):
         self.interpreter.invoke()
 
         output_details_tensor_index = self.output_details[0]['index']
-
+        print(output_details_tensor_index)
         result = self.interpreter.get_tensor(output_details_tensor_index)
 
         result_index = np.argmax(np.squeeze(result))

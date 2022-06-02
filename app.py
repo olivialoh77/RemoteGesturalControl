@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import csv
 import copy
@@ -194,7 +194,7 @@ def select_mode(key, mode):
     return number, mode
 
 
-def calc_bounding_rect_area(image, landmarks):
+def calc_bounding_rect(image, landmarks):
     image_width, image_height = image.shape[1], image.shape[0]
 
     landmark_array = np.empty((0, 2), int)
@@ -209,8 +209,7 @@ def calc_bounding_rect_area(image, landmarks):
 
     x, y, w, h = cv.boundingRect(landmark_array)
 
-    return (w-x)*(h-y)
-    #return [x, y, x + w, y + h]
+    return [x, y, x + w, y + h]
 
 
 def calc_landmark_list(image, landmarks):
@@ -283,7 +282,7 @@ def logging_csv(number, mode, landmark_list, point_history_list):
     if mode == 0:
         pass
     if mode == 1 and (0 <= number <= 9):
-        csv_path = 'ml/model/keypoint_classifier/keypoint2.csv'
+        csv_path = 'ml/model/keypoint_classifier/keypoint_final.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *landmark_list])

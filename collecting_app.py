@@ -4,6 +4,7 @@ import csv
 import copy
 import argparse
 import itertools
+import time
 from collections import Counter
 from collections import deque
 
@@ -97,17 +98,20 @@ def main():
 
     #  ########################################################################
     mode = 0
-
-    counter = 10
-
+    number = 4
+    counter = 500
+    prev_time = 0 
+    diff_time = 0
     while True:
+        cur_time = time.time()
+
         fps = cvFpsCalc.get()
 
         # Process Key (ESC: end) #################################################
         key = cv.waitKey(10)
         if key == 27:  # ESC
             break
-        number, mode = select_mode(key, mode)
+        number, mode = select_mode(key, mode, number)
 
         # Camera capture #####################################################
         ret, image = cap.read()
@@ -138,8 +142,8 @@ def main():
                 pre_processed_point_history_list = pre_process_point_history(
                     debug_image, point_history)
                 # Write to the dataset file
-                logging_csv(number, mode, pre_processed_landmark_list,
-                            pre_processed_point_history_list, counter)
+                counter = logging_csv(number, mode, pre_processed_landmark_list,
+                            pre_processed_point_history_list, counter, diff_time)
 
                 # Hand sign classification
                 hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
@@ -180,13 +184,17 @@ def main():
             print("Finished collection")
         # Screen reflection #############################################################
         cv.imshow('Hand Gesture Recognition', debug_image)
+        cur_time = time.time()
+
+        diff_time = cur_time - prev_time 
+        #print(diff_time)
 
     cap.release()
     cv.destroyAllWindows()
 
 
-def select_mode(key, mode):
-    number = -1
+def select_mode(key, mode,number):
+    #number = -1
     if 48 <= key <= 57:  # 0 ~ 9
         number = key - 48
     if key == 110:  # n
@@ -282,21 +290,22 @@ def pre_process_point_history(image, point_history):
     return temp_point_history
 
 
-def logging_csv(number, mode, landmark_list, point_history_list, counter):
+def logging_csv(number, mode, landmark_list, point_history_list, counter, duration):
     if mode == 0:
         pass
-    if mode == 1 and counter > 0:
+    if mode == 1 and counter > 0 and duration >= 0.15:
         csv_path = 'ml/model/keypoint_classifier/keypoint.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *landmark_list])
+        #print(counter)
         counter = counter - 1
     if mode == 2 and (0 <= number <= 9):
         csv_path = 'ml/model/point_history_classifier/point_history.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *point_history_list])
-    return
+    return counter
 
 
 def draw_landmarks(image, landmark_point):

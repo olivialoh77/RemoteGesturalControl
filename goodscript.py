@@ -231,7 +231,7 @@ def main():
                     sent_msg = keypoint_classifier_labels[hand_sign_id]
 
                     
-                    if (keypoint_classifier_labels[hand_sign_id] == "Standby"):
+                    if (keypoint_classifier_labels[hand_sign_id] == "Move"):
                         
                             #print("0.01")
                             x_center, y_center, area = locate_center_frame(use_brect,brect)

@@ -98,8 +98,6 @@ def main():
     #  ########################################################################
     mode = 0
 
-    counter = 10
-
     while True:
         fps = cvFpsCalc.get()
 
@@ -139,7 +137,7 @@ def main():
                     debug_image, point_history)
                 # Write to the dataset file
                 logging_csv(number, mode, pre_processed_landmark_list,
-                            pre_processed_point_history_list, counter)
+                            pre_processed_point_history_list)
 
                 # Hand sign classification
                 hand_sign_id = keypoint_classifier(pre_processed_landmark_list)
@@ -176,8 +174,6 @@ def main():
         debug_image = draw_point_history(debug_image, point_history)
         debug_image = draw_info(debug_image, fps, mode, number)
 
-        if counter == 0:
-            print("Finished collection")
         # Screen reflection #############################################################
         cv.imshow('Hand Gesture Recognition', debug_image)
 
@@ -198,7 +194,7 @@ def select_mode(key, mode):
     return number, mode
 
 
-def calc_bounding_rect(image, landmarks):
+def calc_bounding_rect_area(image, landmarks):
     image_width, image_height = image.shape[1], image.shape[0]
 
     landmark_array = np.empty((0, 2), int)
@@ -213,7 +209,8 @@ def calc_bounding_rect(image, landmarks):
 
     x, y, w, h = cv.boundingRect(landmark_array)
 
-    return [x, y, x + w, y + h]
+    return (w-x)*(h-y)
+    #return [x, y, x + w, y + h]
 
 
 def calc_landmark_list(image, landmarks):
@@ -282,15 +279,14 @@ def pre_process_point_history(image, point_history):
     return temp_point_history
 
 
-def logging_csv(number, mode, landmark_list, point_history_list, counter):
+def logging_csv(number, mode, landmark_list, point_history_list):
     if mode == 0:
         pass
-    if mode == 1 and counter > 0:
-        csv_path = 'ml/model/keypoint_classifier/keypoint.csv'
+    if mode == 1 and (0 <= number <= 9):
+        csv_path = 'ml/model/keypoint_classifier/keypoint2.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *landmark_list])
-        counter = counter - 1
     if mode == 2 and (0 <= number <= 9):
         csv_path = 'ml/model/point_history_classifier/point_history.csv'
         with open(csv_path, 'a', newline="") as f:
